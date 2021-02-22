@@ -43,3 +43,6 @@ To reverse audio samples and mute left channel:
 ./wave -r -L my_file.wav
 ```
 
+
+Google points to this source of wav files: https://www2.cs.uic.edu/~i101/SoundFiles/
+
