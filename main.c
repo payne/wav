@@ -18,6 +18,25 @@
  *Verify reverse works on mono too.
  */
 
+short *insert_message(short *data, char *message, union header_data *header_bytes) {
+ // first experiment -- set the least signficant bits to 1
+  int num_samples_per_channel;
+  short num_channels = header_bytes->header.num_channels.short_value;
+  short bits_per_sample = header_bytes->header.bits_per_sample.short_value;
+  int data_size = header_bytes->header.subchunk2_size.int_value;
+  int bytes_per_sample = bits_per_sample / 8;
+
+  num_samples_per_channel = data_size / bytes_per_sample / num_channels;
+  int len = num_samples_per_channel * num_channels; //TODO: DRY this up into a function
+
+  for (int i = 0; i < len; i++) {
+    short value = data[i];
+    value = value | 1;  // set LSB to 1
+    data[i] = value;
+  }
+  printf("DEBUG: set %d LSBs to 1\n", len);
+  return data;
+}
 
 int main(int argc, char *argv[]) {
   FILE *fp_in = NULL, *fp_out = NULL;
@@ -119,6 +138,10 @@ int main(int argc, char *argv[]) {
 
   if (flags & WRITE)
     data = read_data(fp_in, header);
+
+  // TODO if (flags & STEGO) 
+    char *message = "TODO: Get from command line or a text file.";
+    data = insert_message(data, message, header);
   
   if (flags & REVERSE)
     reverse_data(data, header);
