@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <sys/stat.h> // man 3 open asks for this
+#include <fcntl.h> // man 3 open asks for this
+#include <unistd.h> // man 3 read asks for this
 
 char *nibbleLookup[]={
   "0000",
@@ -11,12 +14,19 @@ char *nibbleLookup[]={
   "0101", // 5
   "0110",
   "0111", // 7
-  "1000"
+  "1000",
+  "1001",
+  "1010",
+  "1011",
+  "1100", // 12
+  "1101",
+  "1110", // 14
+  "1111" // 15
   };
 
 char *nibbleToBinary(int nibble) {
   assert(nibble >= 0);
-  assert(nibble <= 8);
+  assert(nibble <= 15);
   return nibbleLookup[nibble];
 }
 
@@ -38,8 +48,25 @@ void outputBinary(char *s) {
   }
 }
 
-int main(void) {
+int mainForPrototype(void) { // not used....
   printf("Hello World\n");
   outputBinary("abcdABCD");
   return 0;
 }
+
+int main(int argc, char *argv[], char *envp[]) {
+  int fd = open(argv[1], O_RDONLY);
+  int CHUNK_SIZE=1024;
+  unsigned char chunk[CHUNK_SIZE];
+  int numBytes=CHUNK_SIZE;
+
+  while (0 != (numBytes = read(fd, chunk, CHUNK_SIZE))) {
+    for (int i=0; i < numBytes; i++) {
+      printf("%s\n", toBinary(chunk[i]));
+    }
+  }
+  close(fd);
+  return 0;
+}
+
+
