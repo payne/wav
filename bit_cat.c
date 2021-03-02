@@ -12,12 +12,19 @@
 
 char *toBits(char *message) {
    static int position = 0; // Not thread safe
-   switch (position++) {
-     case 0: return "0";
-     case 1: return "1";
-     case 2: return "1";
-     default: return NULL;
-  }
+   if (position >= strlen(message)) return NULL;
+   // get char at position & remember it in a static
+   static char workingChar = '\0'; 
+   if (workingChar == '\0') {
+     workingChar = message[position++];
+   }
+   static int bitNumber = 0;
+   // for the next 8 calls, just return a bit from that char
+   // then get the next one...
+   if (bitNumber > 8) {
+     bitNumber = 0;
+     workingChar = '\0'; 
+   }
 }
 
 int main(int argc, char *argv[]) {

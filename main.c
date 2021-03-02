@@ -13,31 +13,13 @@
 #define WRITE 1 << 2
 #define MUTE_LEFT 1 << 3
 #define MUTE_RIGHT 1 << 4
+#define STEGO 1 << 6
 
 /*TODO
  *Verify reverse works on mono too.
  */
 
-short *insert_message(short *data, char *message, union header_data *header_bytes) {
- // first experiment -- set the least signficant bits to 1
-  int num_samples_per_channel;
-  short num_channels = header_bytes->header.num_channels.short_value;
-  short bits_per_sample = header_bytes->header.bits_per_sample.short_value;
-  int data_size = header_bytes->header.subchunk2_size.int_value;
-  int bytes_per_sample = bits_per_sample / 8;
-
-  num_samples_per_channel = data_size / bytes_per_sample / num_channels;
-  int len = num_samples_per_channel * num_channels; //TODO: DRY this up into a function
-
-  for (int i = 0; i < len; i++) {
-    short value = data[i];
-    value = value | 1;  // set LSB to 1
-    data[i] = value;
-  }
-  printf("DEBUG: set %d LSBs to 1\n", len);
-  return data;
-}
-
+short *insert_message(short *data, char *message, union header_data *header_bytes);
 int main(int argc, char *argv[]) {
   FILE *fp_in = NULL, *fp_out = NULL;
   char *input_file_name;
@@ -66,6 +48,10 @@ int main(int argc, char *argv[]) {
       case 'r':
         flags |= REVERSE;
         flags |= WRITE;
+        break;
+      case 's':
+        flags |= STEGO;
+        // TODO: Logic to get the argument -- consider using getopt.  See https://man7.org/linux/man-pages/man3/getopt.3.html
         break;
       case 'o':
         flags |= WRITE;
@@ -139,9 +125,11 @@ int main(int argc, char *argv[]) {
   if (flags & WRITE)
     data = read_data(fp_in, header);
 
-  // TODO if (flags & STEGO) 
+  // TODO: finish this wip
+  if (flags & STEGO) {
     char *message = "TODO: Get from command line or a text file.";
     data = insert_message(data, message, header);
+  }
   
   if (flags & REVERSE)
     reverse_data(data, header);
@@ -167,5 +155,45 @@ int main(int argc, char *argv[]) {
     free(data);
   
   return 0;
+}
+
+char *toBits(char *message) {
+   // TODO: Make this real instead of this place holder repeating pattern
+   static int position = 0;
+   switch (position++) {
+     case 0: return "0";
+     case 1: return "1";
+     default:
+       position = 0;
+       return "0";
+   }
+}
+
+short *insert_message(short *data, char *message, union header_data *header_bytes) {
+  // first experiment -- set the least signficant bits to 1 -- worked and committed
+  // second experiment -- embed the message...
+  int num_samples_per_channel;
+  short num_channels = header_bytes->header.num_channels.short_value;
+  short bits_per_sample = header_bytes->header.bits_per_sample.short_value;
+  int data_size = header_bytes->header.subchunk2_size.int_value;
+  int bytes_per_sample = bits_per_sample / 8;
+
+  num_samples_per_channel = data_size / bytes_per_sample / num_channels;
+  int len = num_samples_per_channel * num_channels; //TODO: DRY this up into a function
+
+  for (int i = 0; i < len; i++) {
+    short value = data[i];
+    char *tmp = toBits(message); // TODO figure out how to mark the end of the message
+    short bit = strcmp("0", tmp) == 0 ? 0 : 1; 
+    if (bit) {
+      value = value | 1;  // set LSB to bit
+    } else { 
+      value = value & 0xFFF7;  // set LSB to bit (0)
+    }
+
+    data[i] = value;
+  }
+  printf("DEBUG: set %d LSBs to 1\n", len);
+  return data;
 }
 
