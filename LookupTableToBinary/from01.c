@@ -47,16 +47,18 @@ int findNibble(char *str) {
   while (location < 16) {
     if (!strcmp(str, nibbleLookup[location++])) break;
   }
-  return location;
+  return location-1;
 }
 
 unsigned char computeByte(char *line) {
   char highString[8], lowString[8];
   strncpy(highString, line, 4);
   strncpy(lowString, &line[4], 4);
-  int highNibble = findNibble(highString) * 2*2*2*2;
+  int highNibble = findNibble(highString);
   int lowNibble = findNibble(lowString);
-  unsigned char uc = (unsigned char) (highNibble + lowNibble);
+  printf("highString='%s' lowString='%s' highNibble=%d lowNibble=%d\n", highString, lowString, highNibble, lowNibble);
+  printf("\tline=%s\n", line);
+  unsigned char uc = (unsigned char) (highNibble * 2*2*2*2 + lowNibble);
   return uc;
 }
 
@@ -89,7 +91,9 @@ int main_to01(int argc, char *argv[], char *envp[]) {
 }
 
 int main(int argc, char *argv[], char *envp[]) {
-  int fd = open(argv[1], O_WRONLY);
+  int fd = open(argv[1], O_WRONLY | O_CREAT, 0777);
+  printf("fd=%d\n", fd);
+  assert(fd >= 0);
   char line[88];
   while (gets(line)) { // do not care about buffer overflow in this toy program
     unsigned char uc = computeByte(line);
