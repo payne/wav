@@ -1,10 +1,10 @@
 
 all: from01 to01 demo
 
-from01 : from01.c
+from01 : from01.c nibbles.h
 	cc -o from01 from01.c
 
-to01 : to01.c
+to01 : to01.c nibbles.h
 	cc -o to01 to01.c
 
 demo : to01 from01

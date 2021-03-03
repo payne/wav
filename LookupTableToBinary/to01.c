@@ -4,25 +4,7 @@
 #include <sys/stat.h> // man 3 open asks for this
 #include <fcntl.h> // man 3 open asks for this
 #include <unistd.h> // man 3 read asks for this
-
-char *nibbleLookup[]={
-  "0000",
-  "0001", // 1
-  "0010",
-  "0011", // 3
-  "0100",
-  "0101", // 5
-  "0110",
-  "0111", // 7
-  "1000",
-  "1001",
-  "1010",
-  "1011",
-  "1100", // 12
-  "1101",
-  "1110", // 14
-  "1111" // 15
-  };
+#include "nibbles.h"
 
 char *nibbleToBinary(int nibble) {
   assert(nibble >= 0);
@@ -46,12 +28,6 @@ void outputBinary(char *s) {
   for (int i=0; i < len; i++) {
     printf("%s\n", toBinary(s[i]));
   }
-}
-
-int mainForPrototype(void) { // not used....
-  printf("Hello World\n");
-  outputBinary("abcdABCD");
-  return 0;
 }
 
 int main(int argc, char *argv[], char *envp[]) {
