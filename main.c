@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #include "wav_types.h"
 #include "wav_header.h"
@@ -15,11 +16,15 @@
 #define MUTE_RIGHT 1 << 4
 #define STEGO 1 << 6
 
+// Since stego lines are not long...
+#define LINE_SIZE 20
+
 /*TODO
  *Verify reverse works on mono too.
  */
 
-short *insert_message(short *data, char *message, union header_data *header_bytes);
+short *insert_message(short *data, union header_data *header_bytes);
+
 int main(int argc, char *argv[]) {
   FILE *fp_in = NULL, *fp_out = NULL;
   char *input_file_name;
@@ -128,7 +133,7 @@ int main(int argc, char *argv[]) {
   // TODO: finish this wip
   if (flags & STEGO) {
     char *message = "TODO: Get from command line or a text file.";
-    data = insert_message(data, message, header);
+    data = insert_message(data, header);
   }
   
   if (flags & REVERSE)
@@ -157,19 +162,37 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
-char *toBits(char *message) {
-   // TODO: Make this real instead of this place holder repeating pattern
-   static int position = 0;
-   switch (position++) {
-     case 0: return "0";
-     case 1: return "1";
-     default:
-       position = 0;
-       return "0";
+
+char *nextStegoBit() {
+   static int position = -1;
+   static FILE *fd;
+   static char line[LINE_SIZE];
+   static int line_position=0;
+   static char result[4]; // "0" or "1"
+   if (-1 == position) {
+      position = 1;
+      fd = fopen("message.01","r");
+      assert(fd != NULL);
+      fgets(line, LINE_SIZE, fd);
    }
+   if (line_position >= 8) { 
+     int atEOF = NULL == fgets(line, LINE_SIZE, fd);
+     if (atEOF) {
+       position = -1;
+       fclose(fd);
+       return NULL;
+     }
+     line_position = 0;
+     position++;
+   } 
+
+   strncpy(result, line[line_position], 1);
+   result[1]='\0';
+   line_position++;
+   return result;
 }
 
-short *insert_message(short *data, char *message, union header_data *header_bytes) {
+short *insert_message(short *data, union header_data *header_bytes) {
   // first experiment -- set the least signficant bits to 1 -- worked and committed
   // second experiment -- embed the message...
   int num_samples_per_channel;
@@ -183,7 +206,8 @@ short *insert_message(short *data, char *message, union header_data *header_byte
 
   for (int i = 0; i < len; i++) {
     short value = data[i];
-    char *tmp = toBits(message); // TODO figure out how to mark the end of the message
+    char *tmp = nextStegoBit();
+    if (NULL == tmp) break;
     short bit = strcmp("0", tmp) == 0 ? 0 : 1; 
     if (bit) {
       value = value | 1;  // set LSB to bit
@@ -193,7 +217,6 @@ short *insert_message(short *data, char *message, union header_data *header_byte
 
     data[i] = value;
   }
-  printf("DEBUG: set %d LSBs to 1\n", len);
   return data;
 }
 
